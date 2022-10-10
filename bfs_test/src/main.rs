@@ -1,13 +1,29 @@
+use std::collections::VecDeque;
+
 use rand::prelude::*;
 
 fn main() {
     let mut tree = Tree::empty();
     let mut rng = thread_rng();
-    for _ in 0..100 {
-        tree.add(rng.gen::<i32>())
+    for _ in 0..10_000 {
+        tree.add(rng.gen::<i8>())
     }
+
+    println!("{:?}", tree);
+
+    // let mut bfs_q = VecDeque::new();
+    // bfs(&tree, &mut bfs_q);
 }
 
+// fn bfs<T: Ord>(tree: &Tree<T>, q: &mut VecDeque<T>) {
+//     if tree.root == None {
+//         return;
+//     }
+
+
+// }
+
+#[derive(Debug)]
 struct Tree<T: Ord> {
     root: Option<TreeNode<T>>,
 }
@@ -47,6 +63,7 @@ where
     }
 }
 
+#[derive(Debug)]
 struct TreeNode<T: Ord> {
     value: T,
     left: Option<Box<TreeNode<T>>>,
