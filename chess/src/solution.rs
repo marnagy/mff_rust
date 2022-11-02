@@ -1,6 +1,4 @@
 use core::convert::TryFrom;
-use core::convert::TryInto;
-use std::any;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Error {
@@ -88,7 +86,10 @@ impl ChessGame {
             ],
         }
     }
-    pub fn get_field(&self, pos: &Position) -> Option<Piece> {
+    pub fn get_field(&self, pos: Position) -> Option<Piece> {
+        self.get_field_ref(&pos)
+    }
+    pub fn get_field_ref(&self, pos: &Position) -> Option<Piece> {
         if pos.get_x() >= TILES_SIZE || pos.get_y() >= TILES_SIZE {
             None
         } else {
@@ -102,7 +103,7 @@ impl ChessGame {
         let between_pieces: Vec<Option<Piece>> = (1..dist_x.abs())
             .map(|x| {
                 self.get_field(
-                    &Position::new(
+                    Position::new(
                         (src.get_x() as i8 + dist_x.signum() * x) as usize,
                         (src.get_y() as i8 + dist_y.signum() * x) as usize,
                     )
@@ -127,7 +128,15 @@ impl ChessGame {
             Turn::WhitePlays => Turn::BlackPlays,
         }
     }
-    pub fn make_move(&mut self, src: &Position, dst: &Position) -> Result<Option<Piece>, Error> {
+    pub fn current_player(&self) -> Turn {
+        self.next_turn
+    }
+
+    pub fn make_move(&mut self, src: Position, dst: Position) -> Result<Option<Piece>, Error> {
+        self.make_move_ref(&src, &dst)
+    }
+
+    fn make_move_ref(&mut self, src: &Position, dst: &Position) -> Result<Option<Piece>, Error> {
         let mut returned_piece: Option<Piece> = None;
 
         if src == dst {
@@ -147,7 +156,7 @@ impl ChessGame {
             }
 
             // cannot move to position of piece with the same color
-            if let Some(piece) = self.get_field(dst) {
+            if let Some(piece) = self.get_field_ref(dst) {
                 if let Piece::White(_) = piece {
                     return Err(Error::InvalidMove);
                 }
@@ -207,7 +216,7 @@ impl ChessGame {
             }
 
             // cannot move to position of piece with the same color
-            if let Some(piece) = self.get_field(dst) {
+            if let Some(piece) = self.get_field_ref(dst) {
                 if let Piece::Black(_) = piece {
                     return Err(Error::InvalidMove);
                 }
@@ -263,7 +272,7 @@ impl ChessGame {
 
         // everything is valid
         // make the move
-        let dst_piece_opt = self.get_field(dst);
+        let dst_piece_opt = self.get_field_ref(dst);
         if let Some(dst_piece) = dst_piece_opt {
             returned_piece = Some(dst_piece);
         }
@@ -297,7 +306,7 @@ impl TryFrom<&str> for Position {
             if num >= TILES_SIZE {
                 return Err(Error::InvalidPositionFormat);
             } else {
-                row = num;
+                row = num - 1;
             }
         } else {
             return Err(Error::InvalidPositionFormat);
