@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::ops::Add;
 
+#[derive(Debug, Clone)]
 pub struct Polynomial {
     variables: HashMap<String, HashMap<i32, i32>>
 }
@@ -7,6 +9,14 @@ pub struct Polynomial {
 impl Polynomial {
     pub fn builder() -> PolynomialBuilder {
         PolynomialBuilder::new()
+    }
+}
+
+impl Add for Polynomial {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        // TODO: continue here
     }
 }
 
