@@ -7,14 +7,14 @@ pub enum Error {
     InvalidMove,
 }
 
-const TILES_SIZE: usize = 8;
-const VALID_COLUMNS: [&str; 8] = ["A", "B", "C", "D", "E", "F", "G", "H"];
+pub const TILES_SIZE: usize = 8;
+pub const VALID_COLUMNS: [&str; 8] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 #[derive(Debug)]
 pub struct ChessGame {
     // tiles[row][column]
     // tiles[0][0] is left-down
-    tiles: [[Option<Piece>; TILES_SIZE]; TILES_SIZE],
+    pub tiles: [[Option<Piece>; TILES_SIZE]; TILES_SIZE],
     next_turn: Turn,
 }
 
@@ -87,41 +87,43 @@ impl ChessGame {
         }
     }
     pub fn get_field(&self, pos: Position) -> Option<Piece> {
+        //println!("Getting field from indices: [{}][{}]", pos.x, pos.y);
         self.get_field_ref(&pos)
     }
     pub fn get_field_ref(&self, pos: &Position) -> Option<Piece> {
         if pos.get_x() >= TILES_SIZE || pos.get_y() >= TILES_SIZE {
+            // println!("Unsatisfied condition in get_field_ref");
             None
         } else {
             self.tiles[pos.get_y()][pos.get_x()]
         }
     }
-    fn check_pieces_between(&self, src: &Position, dst: &Position) -> Result<(), Error> {
-        let (dist_x, dist_y) = src.distance_from(dst);
+    // fn check_pieces_between(&self, src: &Position, dst: &Position) -> Result<(), Error> {
+    //     let (dist_x, dist_y) = src.distance_from(dst);
 
-        // check pieces in between
-        let between_pieces: Vec<Option<Piece>> = (1..dist_x.abs())
-            .map(|x| {
-                self.get_field(
-                    Position::new(
-                        (src.get_x() as i8 + dist_x.signum() * x) as usize,
-                        (src.get_y() as i8 + dist_y.signum() * x) as usize,
-                    )
-                    .unwrap(),
-                )
-            })
-            .collect();
+    //     // check pieces in between
+    //     let between_pieces: Vec<Option<Piece>> = (1..dist_x.abs())
+    //         .map(|x| {
+    //             self.get_field(
+    //                 Position::new(
+    //                     (src.get_x() as i8 + dist_x.signum() * x) as usize,
+    //                     (src.get_y() as i8 + dist_y.signum() * x) as usize,
+    //                 )
+    //                 .unwrap(),
+    //             )
+    //         })
+    //         .collect();
 
-        if between_pieces
-            .iter()
-            .map(|x| *x != None)
-            .fold(false, |acc, x| acc || x)
-        {
-            return Err(Error::InvalidMove);
-        }
+    //     if between_pieces
+    //         .iter()
+    //         .map(|x| *x != None)
+    //         .fold(false, |acc, x| acc || x)
+    //     {
+    //         return Err(Error::InvalidMove);
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
     fn update_turn(&mut self) {
         self.next_turn = match self.next_turn {
             Turn::BlackPlays => Turn::WhitePlays,
@@ -143,7 +145,7 @@ impl ChessGame {
             return Err(Error::InvalidMove);
         }
 
-        let (dist_x, dist_y) = src.distance_from(dst);
+        //let (dist_x, dist_y) = src.distance_from(dst);
 
         let moving_piece = match self.tiles[src.get_y()][src.get_x()] {
             Some(piece) => piece,
@@ -161,54 +163,6 @@ impl ChessGame {
                     return Err(Error::InvalidMove);
                 }
             }
-
-            // ! TODO: check the code below
-            // check for validity
-            match moving_piece {
-                Piece::White(piece_type) => match piece_type {
-                    PieceType::Bishop => {
-                        if dist_x.abs() != dist_y.abs() {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                    PieceType::King => {
-                        if dist_x.abs() + dist_y.abs() != 1 {
-                            return Err(Error::InvalidMove);
-                        }
-                    }
-                    PieceType::Knight => {
-                        if !((dist_x.abs() == 3 && dist_y.abs() == 1)
-                            || (dist_x.abs() == 1 && dist_y.abs() == 3))
-                        {
-                            return Err(Error::InvalidMove);
-                        }
-                    }
-                    PieceType::Pawn => {}
-                    PieceType::Queen => {
-                        if !(
-                            ( dist_x == 0 && dist_y.abs() > 0 ) || ( dist_x.abs() > 0 && dist_y == 0 ) // moving like Rook
-                            ||
-                            dist_x == dist_y
-                            // moving like Bishop
-                        ) {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                    PieceType::Rook => {
-                        if !((dist_x == 0 && dist_y.abs() > 0) || (dist_x.abs() > 0 && dist_y == 0))
-                        {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                },
-                _ => panic!("How did you get here, sneaky little hobbitses?"),
-            }
         } else {
             // Turn::Black
             if let Piece::White(_) = moving_piece {
@@ -220,53 +174,6 @@ impl ChessGame {
                 if let Piece::Black(_) = piece {
                     return Err(Error::InvalidMove);
                 }
-            }
-
-            // check for validity
-            match moving_piece {
-                Piece::Black(piece_type) => match piece_type {
-                    PieceType::Bishop => {
-                        if dist_x.abs() != dist_y.abs() {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                    PieceType::King => {
-                        if dist_x.abs() + dist_y.abs() != 1 {
-                            return Err(Error::InvalidMove);
-                        }
-                    }
-                    PieceType::Knight => {
-                        if !((dist_x.abs() == 3 && dist_y.abs() == 1)
-                            || (dist_x.abs() == 1 && dist_y.abs() == 3))
-                        {
-                            return Err(Error::InvalidMove);
-                        }
-                    }
-                    PieceType::Pawn => {}
-                    PieceType::Queen => {
-                        if !(
-                            ( dist_x == 0 && dist_y.abs() > 0 ) || ( dist_x.abs() > 0 && dist_y == 0 ) // moving like Rook
-                            ||
-                            dist_x == dist_y
-                            // moving like Bishop
-                        ) {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                    PieceType::Rook => {
-                        if !((dist_x == 0 && dist_y.abs() > 0) || (dist_x.abs() > 0 && dist_y == 0))
-                        {
-                            return Err(Error::InvalidMove);
-                        }
-
-                        let _ = self.check_pieces_between(src, dst)?;
-                    }
-                },
-                _ => panic!("How did you get here, sneaky little hobbitses?"),
             }
         }
 
@@ -288,24 +195,27 @@ impl ChessGame {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Position {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl TryFrom<&str> for Position {
     type Error = Error;
 
     fn try_from(s: &str) -> Result<Position, Error> {
+        // println!("Trying from {}", s);
+
         if s.len() != 2 {
             return Err(Error::InvalidPositionFormat);
         }
 
-        let column = s.chars().nth(0).unwrap().to_string();
+        let column = s.chars().nth(0).unwrap().to_string().to_lowercase();
         let row: usize;
         if let Ok(num) = s.chars().nth(1).unwrap().to_string().parse::<usize>() {
-            if num >= TILES_SIZE {
+            if num > TILES_SIZE || num <= 0 {
                 return Err(Error::InvalidPositionFormat);
             } else {
+                //println!("Loading {}", s);
                 row = num - 1;
             }
         } else {
@@ -315,11 +225,11 @@ impl TryFrom<&str> for Position {
         if !VALID_COLUMNS.contains(&column.as_str()) || row >= TILES_SIZE {
             return Err(Error::InvalidPositionFormat);
         }
+        
+        let col_index = VALID_COLUMNS.iter().position(|r| r == &column).unwrap();
+        //println!("Loaded on indices: [{}][{}]", row, col_index);
 
-        Ok(Position {
-            x: VALID_COLUMNS.iter().position(|x| x == &column).unwrap(),
-            y: row,
-        })
+        Ok( Position::new(col_index, row).unwrap() )
     }
 }
 
@@ -345,21 +255,21 @@ impl Position {
     }
 }
 
-fn max(u1: usize, u2: usize) -> usize {
-    if u1 > u2 {
-        u1
-    } else {
-        u2
-    }
-}
+// fn max(u1: usize, u2: usize) -> usize {
+//     if u1 > u2 {
+//         u1
+//     } else {
+//         u2
+//     }
+// }
 
-fn min(u1: usize, u2: usize) -> usize {
-    if u1 < u2 {
-        u1
-    } else {
-        u2
-    }
-}
+// fn min(u1: usize, u2: usize) -> usize {
+//     if u1 < u2 {
+//         u1
+//     } else {
+//         u2
+//     }
+// }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Turn {
