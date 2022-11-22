@@ -94,30 +94,72 @@ impl Simulation {
     }
     pub fn execute(&mut self, time_steps: i32) -> Vec<Event> {
         let mut events = Vec::new();
+        let mut current_events = HashMap::new();
 
         // board people in begining cities
-        for people in &self.people {
+        let mut temp_people = Vec::new();
+        while let Some(people) = self.people.pop() {
+        //for people in &self.people {
+            let mut people_on_bus = false;
             for bus in &mut self.buses {
                 let mut bus_mut = bus.borrow_mut();
                 if bus_mut.current_city == people.from {
                     bus_mut.people_onboard.push(people.clone());
+                    people_on_bus = true;
+                    current_events.insert(bus_mut.current_city.clone(), Event {
+                        city: bus_mut.current_city.clone(),
+                        on: people.amount,
+                        off: 0
+                    });
                     break;
                 }
             }
+            if !people_on_bus {
+                temp_people.push(people);
+            }
         }
+        self.people = temp_people;
+
+        let evnts: Vec<Event> = current_events.values().cloned().collect();
+        for evnt in evnts {
+            events.push(evnt.clone());
+        }
+        current_events.clear();
 
         for _ in 0..time_steps {
             for bus in &mut self.buses {
                 let mut bus_mut = bus.borrow_mut();
                 bus_mut.distance_remaining -= 1;
 
-                // TODO: check for people to get off
-                
+                // DONE: check for people to get off
+                let mut temp_people = Vec::new();
+                while let Some(p) = bus_mut.people_onboard.pop() {
+                //for p in &bus_mut.people_onboard {
+                    if bus_mut.distance_remaining > 0 {
+                        break;
+                    }
+
+                    // people get off
+                    if p.to == bus_mut.next_city /* && bus_mut.distance_remaining == 0 */ {
+                        let city = bus_mut.next_city.clone();
+                        match current_events.get_mut(&city) {
+                            None => _ = current_events.insert(city.clone(), Event {
+                                city: city,
+                                off: p.amount,
+                                on: 0
+                            }),
+                            Some(evnt) => evnt.off += p.amount,
+                        }
+                    }
+                    else {
+                        temp_people.push(p);
+                    }
+                }
+                bus_mut.people_onboard = temp_people;
             }
 
-
-            // TODO: check for people to get on
-
+            
+            
             // DONE: if bus is empty and in final destination -> erase
             let mut buses = Vec::new();
             while let Some(bus) = self.buses.pop() {
@@ -129,31 +171,36 @@ impl Simulation {
                 !(bus_borrowed.distance_remaining == 0
                     && bus_borrowed.people_onboard.is_empty()
                     && &bus_borrowed.next_city == bus_borrowed.route.last().unwrap())
-            }) {
-                self.buses.push(bus);
+                }) {
+                    self.buses.push(bus);
             }
+
+            // TODO: check for people to get on
+                        
 
             // DONE: update to next destination if neccessary
             for bus in &self.buses {
                 let mut bus_mut = bus.borrow_mut();
-
+                
                 if bus_mut.distance_remaining == 0
-                    && &bus_mut.next_city != bus_mut.route.last().unwrap()
+                && &bus_mut.next_city != bus_mut.route.last().unwrap()
                 {
                     bus_mut.current_city = bus_mut.next_city.clone();
                     bus_mut.next_city_counter += 1;
                     bus_mut.next_city = bus_mut
-                        .route
-                        .get(bus_mut.next_city_counter as usize)
-                        .unwrap()
-                        .clone();
+                    .route
+                    .get(bus_mut.next_city_counter as usize)
+                    .unwrap()
+                    .clone();
                     bus_mut.distance_remaining = *self
-                        .edges
-                        .get(&order_pair(&bus_mut.current_city, &bus_mut.next_city))
-                        .unwrap();
+                    .edges
+                    .get(&order_pair(&bus_mut.current_city, &bus_mut.next_city))
+                    .unwrap();
                 }
             }
 
+
+            
             self.current_time += 1;
         }
 
@@ -202,10 +249,11 @@ pub struct People {
     amount: i32,
 }
 
+#[derive(Clone)]
 pub struct Event {
     city: Rc<Box<Vertex>>,
-    on: u32,
-    off: u32,
+    on: i32,
+    off: i32,
 }
 
 fn order_pair(v1: &Rc<Box<Vertex>>, v2: &Rc<Box<Vertex>>) -> (Rc<Box<Vertex>>, Rc<Box<Vertex>>) {
