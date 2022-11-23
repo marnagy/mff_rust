@@ -1,6 +1,6 @@
-use core::{cmp::Ordering, panic, time};
+use core::{cmp::Ordering, panic};
 use std::{
-    cell::{Ref, RefCell},
+    cell::{RefCell},
     collections::{HashMap, HashSet},
     rc::Rc,
 };
@@ -129,7 +129,7 @@ impl Simulation {
         }
         current_events.clear();
 
-        for i_step in 0..time_steps {
+        for _i_step in 0..time_steps {
             for bus in &mut self.buses {
                 let mut bus_mut = bus.borrow_mut();
                 bus_mut.distance_remaining -= 1;
@@ -151,14 +151,14 @@ impl Simulation {
                         let city = bus_mut.next_city.clone();
                         match current_events.get_mut(&city) {
                             None => {
-                                _ = current_events.insert(
+                                current_events.insert(
                                     city.clone(),
                                     Event {
                                         city: city,
                                         off: p.amount,
                                         on: 0,
                                     },
-                                )
+                                );
                             }
                             Some(evnt) => evnt.off += p.amount,
                         }
