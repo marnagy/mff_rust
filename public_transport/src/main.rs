@@ -14,5 +14,14 @@ fn main() {
 
     simulation.add_people(&prg, &brn, 50);
 
-    println!("Simulation: {:?}", simulation);
+    // println!("Simulation: {:?}", simulation);
+
+    for event in simulation.execute(125) {
+        let name = event.city().name();
+        let people_got_off = event.got_off();
+        let people_got_on = event.got_on();
+        println!("Name: {}", name);
+        println!("On: {}", people_got_on);
+        println!("Off: {}", people_got_off);
+    }
 }
