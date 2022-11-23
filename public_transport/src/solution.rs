@@ -133,10 +133,9 @@ impl Simulation {
             for bus in &mut self.buses {
                 let mut bus_mut = bus.borrow_mut();
                 bus_mut.distance_remaining -= 1;
-                println!("Distance for bus: {}", bus_mut.distance_remaining);
+                // println!("Distance for bus: {}", bus_mut.distance_remaining);
 
                 // TODO: check for people to get off
-                // ! people don't get off in example
                 let mut temp_people = Vec::new();
                 while let Some(p) = bus_mut.people_onboard.pop() {
                     //for p in &bus_mut.people_onboard {
@@ -185,7 +184,25 @@ impl Simulation {
                 self.buses.push(bus);
             }
 
-            // TODO: check for people to get on
+            // DONE: check for people to get on
+            let mut temp_people = Vec::new();
+            while let Some(people) = self.people.pop() {
+                let mut people_got_on = false;
+                for bus in &self.buses {
+                    let mut bus_mut = bus.borrow_mut();
+                    if bus_mut.distance_remaining == 0 &&
+                        bus_mut.next_city == people.from {
+                            people_got_on = true;
+                            bus_mut.people_onboard.push(people.clone());
+                            break;
+                        }
+                }
+
+                if !people_got_on {
+                    temp_people.push(people);
+                }
+            }
+            self.people = temp_people;
 
             // DONE: update to next destination if neccessary
             for bus in &self.buses {
@@ -209,7 +226,7 @@ impl Simulation {
             }
 
             let evnts: Vec<_> = current_events.values().cloned().collect();
-            println!("{} events in step {}", evnts.len(), i_step);
+            // println!("{} events in step {}", evnts.len(), i_step);
             for evnt in evnts {
                 events.push(evnt);
             }
