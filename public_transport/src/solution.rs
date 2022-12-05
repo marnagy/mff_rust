@@ -99,12 +99,12 @@ impl Simulation {
         // board people in begining cities
         for bus in &mut self.buses {
             let mut bus_mut = bus.borrow_mut();
-            // let mut curr_evnt = Event {
-            //     city: bus_mut.current_city.clone(),
-            //     off: 0,
-            //     on: 0,
-            //     step_number: 0,
-            // };
+            let mut curr_evnt = Event {
+                city: bus_mut.current_city.clone(),
+                off: 0,
+                on: 0,
+                step_number: 0,
+            };
             let mut temp_people = Vec::new();
             while let Some(people) = self.people.pop() {
                 //for people in &self.people {
@@ -113,15 +113,15 @@ impl Simulation {
                 if bus_mut.current_city == people.from {
                     bus_mut.people_onboard.push(people.clone());
                     people_on_bus = true;
-                    //curr_evnt.on += people.amount;
-                    current_events.push(
-                        Event {
-                            city: bus_mut.current_city.clone(),
-                            on: people.amount,
-                            off: 0,
-                            step_number: 0
-                        }
-                    );
+                    curr_evnt.on += people.amount;
+                    // current_events.push(
+                    //     Event {
+                    //         city: bus_mut.current_city.clone(),
+                    //         on: people.amount,
+                    //         off: 0,
+                    //         step_number: 0
+                    //     }
+                    // );
                 }
                 if !people_on_bus {
                     temp_people.push(people);
@@ -129,9 +129,9 @@ impl Simulation {
             }
             self.people = temp_people;
 
-            // if curr_evnt.on > 0 {
-            //     events.push(curr_evnt);
-            // }
+            if curr_evnt.on > 0 {
+                events.push(curr_evnt);
+            }
         }
 
         // let evnts: Vec<Event> = current_events.iter().cloned().collect();

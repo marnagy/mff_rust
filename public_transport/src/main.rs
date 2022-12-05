@@ -12,18 +12,23 @@ fn main() {
     let prg = simulation.new_city("Prague");
     let brn = simulation.new_city("Brno");
     let ba = simulation.new_city("Bratislava");
+    let brln = simulation.new_city("Berlin");
 
     let d1 = simulation.new_road(&prg, &brn, 10);
+    let _ = simulation.new_road(&brln, &brn, 10);
     let d2 = simulation.new_road(&brn, &ba, 10);
     let d3 = simulation.new_road(&ba, &prg, 35);
 
     //simulation.new_bus(&[&prg, &brn]);
     simulation.new_bus(&[&prg, &brn, &ba]);
+    simulation.new_bus(&[&brln, &brn, &ba]);
     //simulation.new_bus(&[&ba, &prg, &brn]);
 
     simulation.add_people(&prg, &brn, 50);
     //simulation.add_people(&brn, &ba, 20);
     simulation.add_people(&prg, &ba, 30);
+    simulation.add_people(&brln, &brn, 10);
+    simulation.add_people(&brn, &ba, 20);
 
     // println!("Simulation: {:?}", simulation);
 
