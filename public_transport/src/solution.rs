@@ -78,10 +78,10 @@ impl Simulation {
 
         self.buses.push(RefCell::new(Box::new(Bus {
             route: destinations.iter().cloned().cloned().collect(),
-            current_city: first.clone(),
-            next_city: Some(second.clone()),
-            next_city_counter: 1,
-            distance_remaining: *self.edges.get(&order_pair(first, second)).unwrap(),
+            current_city: if self.current_time == 0 { Some(first.clone()) } else { None },
+            next_city: if self.current_time == 0 { Some(second.clone()) } else { Some(first.clone()) },
+            next_city_counter: if self.current_time == 0 { 1 } else { 0 },
+            distance_remaining: if self.current_time == 0 { *self.edges.get(&order_pair(first, second)).unwrap() } else { 1 },
             is_finished: false,
             people_onboard: Vec::new(),
         })));
@@ -99,10 +99,13 @@ impl Simulation {
 
         // board people in begining cities
         for bus in &mut self.buses {
+            if self.current_time > 0 {
+                break;
+            }
 
             let mut bus_mut = bus.borrow_mut();
             let mut curr_evnt = Event {
-                city: bus_mut.current_city.clone(),
+                city: bus_mut.current_city.clone().unwrap(),
                 off: 0,
                 on: 0,
             };
@@ -114,7 +117,7 @@ impl Simulation {
                     .map(|city_route_index| bus_mut.route.get(city_route_index).unwrap())
                     .collect();
 
-                if bus_mut.current_city == people.from && next_cities.contains(&&people.to) {
+                if bus_mut.current_city.clone().unwrap() == people.from && next_cities.contains(&&people.to) {
                     bus_mut.people_onboard.push(people.clone());
                     people_on_bus = true;
                     curr_evnt.on += people.amount;
@@ -221,7 +224,7 @@ impl Simulation {
                     if bus_mut.distance_remaining == 0
                         && &bus_mut.next_city.clone().unwrap() != bus_mut.route.last().unwrap()
                     {
-                        bus_mut.current_city = bus_mut.next_city.clone().unwrap();
+                        bus_mut.current_city = bus_mut.next_city.clone();
                         bus_mut.next_city_counter += 1;
 
                         // ! Bus.next_city will be None if bus should be deleted
@@ -233,7 +236,7 @@ impl Simulation {
                         if let Some(next_city) = bus_mut.next_city.clone() {
                             bus_mut.distance_remaining = *self
                                 .edges
-                                .get(&order_pair(&bus_mut.current_city, &next_city))
+                                .get(&order_pair(&bus_mut.current_city.clone().unwrap(), &next_city))
                                 .unwrap();
                         } else {
                             // prepare for deletion
@@ -316,7 +319,7 @@ pub struct Edge {
 #[derive(Debug, Clone)]
 pub struct Bus {
     route: Vec<Rc<Box<Vertex>>>,
-    current_city: Rc<Box<Vertex>>,
+    current_city: Option<Rc<Box<Vertex>>>,
     next_city: Option<Rc<Box<Vertex>>>,
     next_city_counter: usize,
     distance_remaining: i32,
