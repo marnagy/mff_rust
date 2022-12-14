@@ -82,6 +82,7 @@ impl Simulation {
             next_city: Some(second.clone()),
             next_city_counter: 1,
             distance_remaining: *self.edges.get(&order_pair(first, second)).unwrap(),
+            is_finished: false,
             people_onboard: Vec::new(),
         })));
     }
@@ -98,52 +99,48 @@ impl Simulation {
 
         // board people in begining cities
         for bus in &mut self.buses {
+
             let mut bus_mut = bus.borrow_mut();
             let mut curr_evnt = Event {
                 city: bus_mut.current_city.clone(),
                 off: 0,
                 on: 0,
-                step_number: 0,
             };
             let mut temp_people = Vec::new();
-            while let Some(people) = self.people.pop() {
-                //for people in &self.people {
+            for people in &self.people {
                 let mut people_on_bus = false;
+                let next_cities: Vec<_> = (bus_mut.next_city_counter..bus_mut.route.len())
+                    .into_iter()
+                    .map(|city_route_index| bus_mut.route.get(city_route_index).unwrap())
+                    .collect();
 
-                if bus_mut.current_city == people.from {
+                if bus_mut.current_city == people.from && next_cities.contains(&&people.to) {
                     bus_mut.people_onboard.push(people.clone());
                     people_on_bus = true;
                     curr_evnt.on += people.amount;
-                    // current_events.push(
-                    //     Event {
-                    //         city: bus_mut.current_city.clone(),
-                    //         on: people.amount,
-                    //         off: 0,
-                    //         step_number: 0
-                    //     }
-                    // );
                 }
+
                 if !people_on_bus {
-                    temp_people.push(people);
+                    temp_people.push(people.clone())
                 }
             }
+            self.people.clear();
             self.people = temp_people;
 
-            if curr_evnt.on > 0 {
-                events.push(curr_evnt);
-            }
+            // Push event on vector if people were added
+            //if curr_evnt.on > 0 {
+            events.push(curr_evnt);
+            //}
         }
-
-        // let evnts: Vec<Event> = current_events.iter().cloned().collect();
-        // for evnt in evnts {
-        //     events.push(evnt.clone());
-        // }
-        // current_events.clear();
 
         for i_step in 0..time_steps {
             //println!("Step {}", i_step);
             for bus in &mut self.buses {
                 let mut bus_mut = bus.borrow_mut();
+
+                if bus_mut.is_finished {
+                    continue;
+                }
 
                 // update distance remaining
                 bus_mut.distance_remaining -= 1;
@@ -154,7 +151,6 @@ impl Simulation {
                     city: bus_mut.next_city.clone().unwrap(),
                     off: 0,
                     on: 0,
-                    step_number: i_step,
                 });
 
                 // DONE: check for people to get off
@@ -183,20 +179,6 @@ impl Simulation {
                             // };
                             // current_events.push(evnt);
                             curr_event.as_mut().off += p.amount;
-                            // match current_events.get_mut(&city) {
-                            //     None => {
-                            //         current_events.insert(
-                            //             city.clone(),
-                            //             Event {
-                            //                 city: city,
-                            //                 off: p.amount,
-                            //                 on: 0,
-                            //                 step_number: i_step
-                            //             },
-                            //         );
-                            //     }
-                            //     Some(evnt) => evnt.off += p.amount,
-                            // }
                         } else {
                             temp_people.push(p);
                         }
@@ -208,10 +190,15 @@ impl Simulation {
                 {
                     let mut temp_people = Vec::new();
                     for people in self.people.iter() {
-                        let mut people_got_on = false;
                         let city = bus_mut.next_city.clone().unwrap();
-                        if bus_mut.distance_remaining == 0 && city == people.from {
-                            people_got_on = true;
+                        let next_cities: Vec<_> = (bus_mut.next_city_counter..bus_mut.route.len())
+                            .into_iter()
+                            .map(|city_route_index| bus_mut.route.get(city_route_index).unwrap())
+                            .collect();
+                        if bus_mut.distance_remaining == 0
+                            && city == people.from
+                            && next_cities.contains(&&people.to)
+                        {
                             bus_mut.people_onboard.push(people.clone());
                             // let evnt = Event {
                             //     city: city.clone(),
@@ -258,24 +245,28 @@ impl Simulation {
                 if bus_stop_happening {
                     current_events.push(*curr_event);
                 }
+
+                // DONE: remove buses that ended
+                if bus_mut.distance_remaining == -1 {
+                    bus_mut.is_finished = true;
+                }
             }
 
-            // DONE: remove buses that ended
             {
-                let buses_temp: Vec<RefCell<Box<Bus>>> = self
-                    .buses
-                    .iter()
-                    .filter(|bus| {
-                        let bus_ref = bus.borrow();
+                // let buses_temp: Vec<RefCell<Box<Bus>>> = self
+                //     .buses
+                //     .iter()
+                //     .filter(|bus| {
+                //         let bus_ref = bus.borrow();
 
-                        bus_ref.distance_remaining != -1
-                    })
-                    .cloned()
-                    .collect();
-                self.buses.clear();
-                for bus in buses_temp {
-                    self.buses.push(bus);
-                }
+                //         bus_ref.distance_remaining != -1
+                //     })
+                //     .cloned()
+                //     .collect();
+                // self.buses.clear();
+                // for bus in buses_temp {
+                //     self.buses.push(bus);
+                // }
             }
 
             let evnts: Vec<_> = current_events.iter().cloned().collect();
@@ -329,6 +320,7 @@ pub struct Bus {
     next_city: Option<Rc<Box<Vertex>>>,
     next_city_counter: usize,
     distance_remaining: i32,
+    is_finished: bool,
     people_onboard: Vec<Rc<Box<People>>>,
 }
 
@@ -344,7 +336,6 @@ pub struct Event {
     city: Rc<Box<Vertex>>,
     on: i32,
     off: i32,
-    step_number: i32,
 }
 
 impl Event {
