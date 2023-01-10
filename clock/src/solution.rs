@@ -30,7 +30,8 @@ impl Clock {
         let _join_handle = Builder::new()
             .name("Clock thread".to_string())
             .spawn(move || {
-                let mut counter = 0_u32;
+                let mut counter = 1_u32;
+                //let start_time = Self::get_timestamp();
                 loop {
                     sleep(dur);
 
@@ -43,9 +44,7 @@ impl Clock {
                         channel.send(timestamp).unwrap();
                     }
                 }
-
-            }
-            );
+            });
 
         clock
     }
@@ -98,7 +97,8 @@ pub struct Alarm {
 impl Alarm {
     pub fn new<T: FnOnce() + Send + 'static>(clock: &Clock, max_ticks: i32, func: T) -> Self {
         let channel = clock.channel();
-        let alarm = Alarm {
+        
+        Alarm {
             // start ticking thread
             tick_thread_join_handle: thread_spawn(move || {
                 let mut counter = 0;
@@ -115,8 +115,6 @@ impl Alarm {
                     channel.next();
                 }
             }),
-        };
-
-        alarm
+        }
     }
 }
